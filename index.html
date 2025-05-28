@@ -62,6 +62,26 @@
             min-height: 1.2em;
         }
 
+        /* Botão de tentar novamente */
+        #retry-button {
+            display: none; /* Inicialmente escondido */
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #00ffea;
+            background-color: #000;
+            border: 2px solid #00ffea;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ffe7;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #retry-button:hover {
+            background-color: #00ffe7;
+            box-shadow: 0 0 20px #00ffe7;
+        }
+
         /* Controles de toque com estilo retro */
         #touch-controls {
             position: relative;
@@ -122,6 +142,7 @@
             <canvas id="game" width="400" height="400" aria-label="Área do jogo da cobrinha"></canvas>
             <div id="score" aria-live="polite">PONTOS: 0</div>
             <div id="message" aria-live="assertive"></div>
+            <button id="retry-button" aria-label="Tentar novamente">Tentar Novamente</button>
         </div>
         <div id="touch-controls" aria-label="Controles de toque para o jogo da cobrinha">
             <button class="arrow-btn" id="btn-up" aria-label="Mover para cima">
@@ -149,6 +170,7 @@
             const ctx = canvas.getContext('2d');
             const scoreEl = document.getElementById('score');
             const messageEl = document.getElementById('message');
+            const retryButton = document.getElementById('retry-button');
 
             const gridSize = 20;
             const tileCount = canvas.width / gridSize;
@@ -191,6 +213,7 @@
             function gameLoop() {
                 if (gameOver) {
                     messageEl.textContent = 'GAME OVER! TOQUE ENTER PARA JOGAR NOVAMENTE.';
+                    retryButton.style.display = 'block'; // Mostrar o botão de tentar novamente
                     return;
                 }
 
@@ -217,6 +240,7 @@
                 if (gameOver) {
                     drawGame();
                     messageEl.textContent = 'GAME OVER! TOQUE ENTER PARA JOGAR NOVAMENTE.';
+                    retryButton.style.display = 'block'; // Mostrar o botão de tentar novamente
                     return;
                 }
 
@@ -300,6 +324,7 @@
                 scoreEl.textContent = 'PONTOS: ' + score;
                 gameOver = false;
                 messageEl.textContent = '';
+                retryButton.style.display = 'none'; // Esconder o botão de tentar novamente
                 placeFood();
                 gameLoop();
             }
