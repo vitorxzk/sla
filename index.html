@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Jogo da Cobrinha - Estilo Arcade</title>
+    <style>
+        /* Estilo de fundo vibrante com cores neon */
+        body {
+            margin: 0;
+            background: radial-gradient(circle at center, #0d0d0d 0%, #000000 80%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Press Start 2P', cursive, monospace;
+            color: #00ffea;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #arcade-frame {
+            position: relative;
+            width: 480px;
+            padding: 20px;
+            border: 16px solid #00ffea;
+            border-radius: 30px;
+            box-shadow: 0 0 40px #00ffea, inset 0 0 80px #00ffea, 0 0 20px #00ffea;
+            background: linear-gradient(135deg, #111111, #222222);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            background: #000;
+            border-radius: 20px;
+            box-shadow: 0 0 20px #00ffe7, inset 0 0 40px #00ffe7;
+        }
+
+        canvas {
+            display: block;
+            background: #040404;
+            border-radius: 20px;
+            box-shadow: 0 0 15px #00ffe7 inset;
+        }
+
+        #score {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #00ffe7;
+            letter-spacing: 3px;
+            text-shadow: 0 0 5px #00ffe7, 0 0 10px #00ffe7;
+        }
+
+        #message {
+            font-size: 10px;
+            margin-top: 5px;
+            color: #ff0040;
+            text-shadow: 0 0 4px #ff0040, 0 0 8px #ff0040;
+            min-height: 1.2em;
+        }
+
+        /* Controles de toque com estilo retro */
+        #touch-controls {
+            position: relative;
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            user-select: none;
+        }
+
+        .arrow-btn {
+            background: #000;
+            border: 3px solid #00ffe7;
+            border-radius: 12px;
+            width: 64px;
+            height: 64px;
+            box-shadow: 0 3px 10px #00ffe7, inset 0 0 8px #00ffe7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .arrow-btn:active {
+            background: #00ffe7;
+            box-shadow: 0 0 30px #00ffe7, inset 0 0 15px #00ffe7;
+        }
+
+        .arrow-btn svg {
+            fill: #00ffe7;
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 0 2px #00ffe7);
+        }
+
+        /* Animação de neon piscante */
+        @keyframes neonFlicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                text-shadow: 0 0 6px #00ffe7, 0 0 30px #00ffe7, 0 0 10px #00ffe7, 0 0 40px #00ffe7;
+                color: #00ffe7;
+            }
+            20%, 22%, 24%, 55% {
+                text-shadow: none;
+                color: #004a53;
+            }
+        }
+
+        #score, #message {
+            animation: neonFlicker 3s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="arcade-frame" role="main" aria-label="Jogo da cobrinha estilo arcade">
+        <div id="game-container">
+            <canvas id="game" width="400" height="400" aria-label="Área do jogo da cobrinha"></canvas>
+            <div id="score" aria-live="polite">PONTOS: 0</div>
+            <div id="message" aria-live="assertive"></div>
+        </div>
+        <div id="touch-controls" aria-label="Controles de toque para o jogo da cobrinha">
+            <button class="arrow-btn" id="btn-up" aria-label="Mover para cima">
+                <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
+            </button>
+        </div>
+        <div id="touch-controls" style="margin-top: 15px;">
+            <button class="arrow-btn" id="btn-left" aria-label="Mover para esquerda" style="margin-right: 90px;">
+                <svg viewBox="0 0 24 24"><path d="M14 7l-5 5 5 5z"/></svg>
+            </button>
+            <button class="arrow-btn" id="btn-right" aria-label="Mover para direita" style="margin-left: 90px;">
+                <svg viewBox="0 0 24 24"><path d="M10 7l5 5-5 5z"/></svg>
+            </button>
+        </div>
+        <div id="touch-controls" style="margin-top: 15px;">
+            <button class="arrow-btn" id="btn-down" aria-label="Mover para baixo">
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            const canvas = document.getElementById('game');
+            const ctx = canvas.getContext('2d');
+            const scoreEl = document.getElementById('score');
+            const messageEl = document.getElementById('message');
+
+            const gridSize = 20;
+            const tileCount = canvas.width / gridSize;
+
+            // Direções mapeadas para movimentos vetoriais
+            const directions = {
+                'ArrowUp': {x: 0, y: -1},
+                'ArrowDown': {x: 0, y: 1},
+                'ArrowLeft': {x: -1, y: 0},
+                'ArrowRight': {x: 1, y: 0},
+                'w': {x: 0, y: -1},
+                's': {x: 0, y: 1},
+                'a': {x: -1, y: 0},
+                'd': {x: 1, y: 0},
+            };
+
+            let snake = [
+                {x: 9, y: 10},
+                {x: 8, y: 10},
+                {x: 7, y: 10},
+            ];
+            let velocity = {x: 1, y: 0};
+            let food = {};
+            let score = 0;
+            let gameOver = false;
+            let nextDirection = velocity; // direção buffer para evitar reverso
+
+            // Colocar comida em um local vazio aleatório
+            function placeFood() {
+                let valid = false;
+                while (!valid) {
+                    food.x = Math.floor(Math.random() * tileCount);
+                    food.y = Math.floor(Math.random() * tileCount);
+                    valid = !snake.some(part => part.x === food.x && part.y === food.y);
+                }
+            }
+
+            placeFood();
+
+            function gameLoop() {
+                if (gameOver) {
+                    messageEl.textContent = 'GAME OVER! TOQUE ENTER PARA JOGAR NOVAMENTE.';
+                    return;
+                }
+
+                // Atualizar direção a partir de nextDirection, mas não permitir reverso
+                if (nextDirection.x !== -velocity.x || nextDirection.y !== -velocity.y) {
+                    velocity = nextDirection;
+                }
+
+                // Mover a cabeça da cobra na direção da velocidade
+                const head = {...snake[0]};
+                head.x += velocity.x;
+                head.y += velocity.y;
+
+                // Colisão com a parede - se a cobra bater na parede, game over
+                if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                    gameOver = true;
+                }
+
+                // Verificação de colisão com o próprio corpo
+                if (snake.some(part => part.x === head.x && part.y === head.y)) {
+                    gameOver = true;
+                }
+
+                if (gameOver) {
+                    drawGame();
+                    messageEl.textContent = 'GAME OVER! TOQUE ENTER PARA JOGAR NOVAMENTE.';
+                    return;
+                }
+
+                snake.unshift(head);
+
+                // Comer comida se a cabeça da cobra alcançar a comida
+                if (head.x === food.x && head.y === food.y) {
+                    score++;
+                    scoreEl.textContent = 'PONTOS: ' + score;
+                    placeFood();
+                } else {
+                    snake.pop(); // Remover a cauda
+                }
+
+                drawGame();
+                setTimeout(gameLoop, 100);
+            }
+
+            function drawGame() {
+                // Limpar o canvas
+                ctx.fillStyle = '#040404';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Desenhar comida com brilho neon
+                ctx.fillStyle = '#00ffe7';
+                ctx.shadowColor = '#00ffe7';
+                ctx.shadowBlur = 15;
+                ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+                ctx.shadowBlur = 0;
+
+                // Desenhar cobra com cores neon
+                for (let i = 0; i < snake.length; i++) {
+                    ctx.fillStyle = i === 0 ? '#ff0040' : '#00ffa3';
+                    ctx.shadowColor = i === 0 ? '#ff0040' : '#00ffa3';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize, gridSize);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Controles de teclado (setas e WASD)
+            window.addEventListener('keydown', e => {
+                if (gameOver && e.key === 'Enter') {
+                    resetGame();
+                    return;
+                }
+                const key = e.key.toLowerCase();
+                if (directions[key]) {
+                    e.preventDefault();
+                    nextDirection = directions[key];
+                }
+            });
+
+            // Controles de toque a partir dos botões
+            document.getElementById('btn-up').addEventListener('touchstart', e => {
+                e.preventDefault();
+                nextDirection = directions['ArrowUp'];
+            });
+            document.getElementById('btn-down').addEventListener('touchstart', e => {
+                e.preventDefault();
+                nextDirection = directions['ArrowDown'];
+            });
+            document.getElementById('btn-left').addEventListener('touchstart', e => {
+                e.preventDefault();
+                nextDirection = directions['ArrowLeft'];
+            });
+            document.getElementById('btn-right').addEventListener('touchstart', e => {
+                e.preventDefault();
+                nextDirection = directions['ArrowRight'];
+            });
+
+            function resetGame() {
+                snake = [
+                    {x: 9, y: 10},
+                    {x: 8, y: 10},
+                    {x: 7, y: 10},
+                ];
+                velocity = {x: 1, y: 0};
+                nextDirection = velocity;
+                score = 0;
+                scoreEl.textContent = 'PONTOS: ' + score;
+                gameOver = false;
+                messageEl.textContent = '';
+                placeFood();
+                gameLoop();
+            }
+
+            // Iniciar o jogo inicialmente
+            gameLoop();
+        })();
+    </script>
+</body>
+</html>
