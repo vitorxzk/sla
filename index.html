@@ -312,6 +312,9 @@
                 nextDirection = directions['ArrowRight'];
             });
 
+            // Adicionar evento para o botão "Tentar Novamente"
+            retryButton.addEventListener('click', resetGame);
+
             function resetGame() {
                 snake = [
                     {x: 9, y: 10},
@@ -335,3 +338,4 @@
     </script>
 </body>
 </html>
+
